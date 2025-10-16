@@ -1,20 +1,26 @@
-import React, { useState } from "react";
-
-// -------------------------------------------------------------
-// MicroEconomy — minimal playable simulation with a start screen
-// (No external animation libs required.)
-// -------------------------------------------------------------
+import React, { useMemo, useState, useRef } from "react";
+import "./index.css";
 
 const scenarios = {
   bakery: {
     name: "Neighborhood Bakery",
-    description: "Manage your bakery’s pricing, supply, and reputation.",
+    description: "Manage pricing, demand, and reputation.",
     metrics: { cash: 100, reputation: 50, demand: 50 },
+    actions: [
+      { id: "priceUp", label: "Raise Prices", color: "green" },
+      { id: "ads", label: "Advertise", color: "amber" },
+      { id: "quality", label: "Improve Quality", color: "violet" },
+    ],
   },
   city: {
     name: "City Economy",
-    description: "Control interest rates and public spending to stabilize growth.",
+    description: "Balance GDP, inflation, and happiness.",
     metrics: { gdp: 100, inflation: 50, happiness: 50 },
+    actions: [
+      { id: "cutRates", label: "Cut Rates", color: "green" },
+      { id: "raiseRates", label: "Raise Rates", color: "amber" },
+      { id: "welfare", label: "Increase Welfare", color: "violet" },
+    ],
   },
 };
 
@@ -23,145 +29,234 @@ export default function App() {
   const [turn, setTurn] = useState(1);
   const [metrics, setMetrics] = useState(scenarios.bakery.metrics);
   const [log, setLog] = useState([]);
-  const [showStart, setShowStart] = useState(true); // ← new landing screen toggle
+  const [showStart, setShowStart] = useState(true);
+  const [showAbout, setShowAbout] = useState(false);
+  const [score, setScore] = useState(0);
+  const [goal] = useState(200);
+  const sparkleRef = useRef(null);
 
-  const handleChoice = (type) => {
-    let newMetrics = { ...metrics };
+  // simple computed list to display metrics in order
+  const metricList = useMemo(() => Object.entries(metrics), [metrics]);
+
+  const addLog = (msg) => setLog((p) => [...p.slice(-120), `Turn ${turn}: ${msg}`]);
+
+  function handleChoice(type) {
+    let m = { ...metrics };
     let effect = "";
 
     if (scenario === "bakery") {
       if (type === "priceUp") {
-        newMetrics.cash += 15;
-        newMetrics.demand -= 10;
-        effect = "Raised prices: more cash, less demand.";
+        m.cash += 15; m.demand -= 10; effect = "Raised prices: more cash, less demand.";
       } else if (type === "ads") {
-        newMetrics.cash -= 10;
-        newMetrics.demand += 15;
-        effect = "Invested in ads: demand rose!";
+        m.cash -= 10; m.demand += 15; effect = "Invested in ads: demand rose!";
       } else {
-        newMetrics.reputation += 10;
-        newMetrics.demand += 5;
-        effect = "Focused on quality: reputation improved!";
+        m.reputation += 10; m.demand += 5; effect = "Quality improved: reputation up!";
       }
     } else {
       if (type === "cutRates") {
-        newMetrics.gdp += 15;
-        newMetrics.inflation += 10;
-        effect = "Cut rates: growth up, inflation rising.";
+        m.gdp += 15; m.inflation += 10; effect = "Cut rates: growth up, inflation rises.";
       } else if (type === "raiseRates") {
-        newMetrics.gdp -= 10;
-        newMetrics.inflation -= 15;
-        effect = "Raised rates: slowed inflation but hurt growth.";
+        m.gdp -= 10; m.inflation -= 15; effect = "Raised rates: inflation cooled, growth slowed.";
       } else {
-        newMetrics.happiness += 10;
-        newMetrics.gdp += 5;
-        effect = "Invested in welfare: happiness improved.";
+        m.happiness += 10; m.gdp += 5; effect = "Social spending: happiness improved.";
       }
     }
 
-    setMetrics(newMetrics);
-    setLog((prev) => [...prev, `Turn ${turn}: ${effect}`]);
-    setTurn(turn + 1);
-  };
+    // random event spice
+    const rnd = Math.random();
+    if (scenario === "bakery" && rnd < 0.33) {
+      m.cash -= 8; effect += " (Oven maintenance cost -8 cash)";
+    } else if (scenario === "bakery" && rnd < 0.5) {
+      m.reputation += 4; m.demand += 6; effect += " (Nice review +demand +reputation)";
+    } else if (scenario === "city" && rnd < 0.33) {
+      m.inflation += 6; effect += " (Energy shock: inflation +6)";
+    } else if (scenario === "city" && rnd < 0.5) {
+      m.happiness -= 6; effect += " (Transit strike: happiness -6)";
+    }
 
-  const restart = () => {
+    setMetrics(m);
+    addLog(effect);
+    setTurn((t) => t + 1);
+
+    // score update (reward balanced metrics)
+    let delta = 0;
+    if (scenario === "bakery") {
+      delta =
+        (m.cash - 100) * 0.25 +
+        (m.reputation - 50) * 0.35 +
+        (m.demand - 50) * 0.35;
+    } else {
+      // keep inflation near 50 (neutral), push GDP & happiness up
+      delta =
+        (m.gdp - 100) * 0.3 +
+        (50 - Math.abs(m.inflation - 50)) * 0.25 +
+        (m.happiness - 50) * 0.35;
+    }
+    setScore((s) => {
+      const next = Math.max(0, Math.round(s + delta / 6));
+      if (next >= goal) shootSparkles();
+      return next;
+    });
+  }
+
+  function shootSparkles() {
+    const el = sparkleRef.current;
+    if (!el) return;
+    el.innerHTML = "";
+    const count = 70;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement("i");
+      const x = Math.random() * w;
+      const y = Math.random() * (h * 0.4) + h * 0.3;
+      const dx = (Math.random() - 0.5) * 240;
+      const dy = -Math.random() * 280 - 60;
+      p.style.setProperty("--x", `${x}px`);
+      p.style.setProperty("--y", `${y}px`);
+      p.style.setProperty("--dx", `${dx}px`);
+      p.style.setProperty("--dy", `${dy}px`);
+      el.appendChild(p);
+      setTimeout(() => p.remove(), 1200);
+    }
+  }
+
+  function restart() {
     setTurn(1);
     setMetrics(scenarios[scenario].metrics);
     setLog([]);
-  };
+    setScore(0);
+  }
+
+  function switchScenario(key) {
+    setScenario(key);
+    setMetrics(scenarios[key].metrics);
+    setTurn(1);
+    setLog([]);
+    setScore(0);
+  }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 p-6 flex flex-col items-center">
-      {/* Landing Screen Overlay */}
+    <div className="app">
+      {/* creator badge */}
+      <a className="badge" href="https://github.com/nehrunkocum-star/microeconomy" target="_blank" rel="noreferrer">
+        Made by Nehrun Kocum
+      </a>
+
+      {/* start overlay */}
       {showStart && (
-        <StartScreen
-          onStart={() => setShowStart(false)}
-        />
+        <StartScreen onStart={() => setShowStart(false)} />
       )}
 
-      <header className="w-full max-w-3xl">
-        <h1 className="text-5xl font-extrabold tracking-tight mb-4">MicroEconomy</h1>
-        <div className="flex gap-3 mb-4">
-          {Object.keys(scenarios).map((key) => (
+      {/* sparkles when player reaches goal */}
+      <div className="spark" ref={sparkleRef} />
+
+      <div className="max">
+        <div className="header">
+          <div>
+            <h1 className="title">MicroEconomy</h1>
+            <p className="subtitle">Tiny economic choices → big consequences.</p>
+          </div>
+          <div className="row">
+            <button className="btn outline" onClick={() => setShowAbout(true)}>About</button>
+            <button className="btn outline" onClick={restart}>Restart</button>
+          </div>
+        </div>
+
+        {/* scenario tabs */}
+        <div className="tabs">
+          {Object.keys(scenarios).map((k) => (
             <button
-              key={key}
-              onClick={() => {
-                setScenario(key);
-                restart();
-              }}
-              className={`px-4 py-2 rounded-lg border ${
-                scenario === key ? "bg-black text-white" : "bg-white text-black"
-              }`}
+              key={k}
+              className={`tab ${scenario === k ? "active" : ""}`}
+              onClick={() => switchScenario(k)}
             >
-              {scenarios[key].name}
+              {scenarios[k].name}
             </button>
           ))}
         </div>
-        <p className="text-slate-600 mb-6">{scenarios[scenario].description}</p>
-      </header>
 
-      {/* Metrics */}
-      <section className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {Object.entries(metrics).map(([key, val]) => (
-          <div
-            key={key}
-            className="rounded-xl border p-4 text-center"
-          >
-            <h3 className="capitalize text-lg font-semibold mb-1">{key}</h3>
-            <p className="text-2xl font-bold">{val}</p>
+        <p className="subtitle">{scenarios[scenario].description}</p>
+
+        {/* Score + progress */}
+        <div className="progress" style={{ margin: "6px 0 16px" }}>
+          <span style={{ width: `${Math.min(100, (score / goal) * 100)}%` }} />
+        </div>
+        <div className="notice">
+          <span>Score: <b>{score}</b> / {goal}</span>
+          {score >= goal && <span>🎉 Goal reached! Try a new run.</span>}
+        </div>
+
+        {/* metrics */}
+        <div className="metrics" style={{ marginTop: 16 }}>
+          {metricList.map(([key, val]) => (
+            <div className="card" key={key}>
+              <h3>{key}</h3>
+              <div className="value">{val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* actions */}
+        <div className="row" style={{ marginTop: 18 }}>
+          {scenarios[scenario].actions.map((a) => (
+            <button key={a.id} className={`btn ${a.color}`} onClick={() => handleChoice(a.id)}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        {/* log */}
+        <div style={{ marginTop: 22 }}>
+          <h3 style={{ margin: "0 0 8px" }}>Game Log</h3>
+          <div className="log">
+            {log.length === 0 ? <p>No turns yet — take your first action.</p> :
+              log.map((line, i) => <p key={i}>{line}</p>)}
           </div>
-        ))}
-      </section>
-
-      {/* Actions */}
-      <section className="w-full max-w-3xl">
-        <div className="flex flex-wrap gap-3 mb-4">
-          {scenario === "bakery" ? (
-            <>
-              <button onClick={() => handleChoice("priceUp")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white">Raise Prices</button>
-              <button onClick={() => handleChoice("ads")} className="px-4 py-2 rounded-lg bg-amber-500 text-white">Advertise</button>
-              <button onClick={() => handleChoice("quality")} className="px-4 py-2 rounded-lg bg-violet-600 text-white">Improve Quality</button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => handleChoice("cutRates")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white">Cut Rates</button>
-              <button onClick={() => handleChoice("raiseRates")} className="px-4 py-2 rounded-lg bg-amber-500 text-white">Raise Rates</button>
-              <button onClick={() => handleChoice("welfare")} className="px-4 py-2 rounded-lg bg-violet-600 text-white">Increase Welfare</button>
-            </>
-          )}
         </div>
-        <button onClick={restart} className="px-5 py-2 rounded-lg border">Restart</button>
-      </section>
 
-      {/* Log */}
-      <section className="w-full max-w-3xl mt-8">
-        <h2 className="text-xl font-semibold mb-2">Game Log</h2>
-        <div className="h-40 overflow-y-auto rounded-xl border p-3 text-sm text-slate-700 bg-slate-50">
-          {log.length === 0 ? <p>No turns yet — make a move.</p> : log.map((entry, i) => (<p key={i}>{entry}</p>))}
-        </div>
-      </section>
-
-      <footer className="mt-10 text-slate-500 text-sm">
-        © 2025 The Logic Loom | Created by Nehrun Kocum
-      </footer>
+        <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />
+      </div>
     </div>
   );
 }
 
+/* ------------ UI Pieces ------------- */
 function StartScreen({ onStart }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-white/80 backdrop-blur-sm p-6">
-      <div className="w-full max-w-xl rounded-2xl border bg-white p-6 shadow-xl">
-        <h2 className="text-3xl font-bold mb-2">Welcome to MicroEconomy</h2>
-        <p className="text-slate-600 mb-4">A tiny simulation about how small choices create big effects.</p>
-        <ul className="list-disc pl-6 text-slate-700 space-y-1 mb-6">
-          <li>Pick a scenario: <span className="font-medium">Bakery</span> (micro) or <span className="font-medium">City</span> (macro).</li>
-          <li>Make one decision per turn; watch metrics react.</li>
-          <li>Try to keep your metrics healthy across turns.</li>
+    <div className="modal">
+      <div className="sheet">
+        <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>Welcome to MicroEconomy</h2>
+        <p style={{ color: "var(--muted)" }}>
+          Choose actions each turn and try to reach the goal score. Keep your metrics healthy!
+        </p>
+        <ul style={{ marginTop: 10, lineHeight: 1.5 }}>
+          <li>💸 <b>Bakery</b>: cash, demand, reputation</li>
+          <li>🏙️ <b>City</b>: GDP, inflation, happiness</li>
+          <li>⚡ Random events will challenge your plan</li>
         </ul>
-        <div className="flex items-center gap-3">
-          <button onClick={onStart} className="px-5 py-2 rounded-lg bg-black text-white">🎮 Start Simulation</button>
-          <a href="#howto" onClick={onStart} className="px-5 py-2 rounded-lg border">Read How‑to</a>
+        <div className="row" style={{ marginTop: 14 }}>
+          <button className="btn green" onClick={onStart}>🎮 Start Simulation</button>
+          <a className="btn outline" href="https://github.com/nehrunkocum-star/microeconomy" target="_blank" rel="noreferrer">Source</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AboutModal({ open, onClose }) {
+  if (!open) return null;
+  return (
+    <div className="modal" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>About</h3>
+        <p style={{ color: "var(--muted)" }}>
+          <b>MicroEconomy</b> is a tiny economics simulation built by <b>Nehrun Kocum</b> for The Logic Loom.
+          It’s a single-page React app deployed on GitHub Pages.
+        </p>
+        <div className="row">
+          <a className="btn outline" href="https://github.com/nehrunkocum-star/microeconomy" target="_blank" rel="noreferrer">View on GitHub</a>
+          <button className="btn" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>

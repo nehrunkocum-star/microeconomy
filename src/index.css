@@ -1,68 +1,114 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* --------- MicroEconomy Global Styles (no Tailwind needed) --------- */
+:root{
+  --bg1:#0f172a;        /* slate-900 */
+  --bg2:#111827;        /* gray-900  */
+  --acc:#60a5fa;        /* blue-400  */
+  --acc2:#a78bfa;       /* violet-400*/
+  --ok:#22c55e;         /* green     */
+  --warn:#f59e0b;       /* amber     */
+  --bad:#ef4444;        /* red       */
+  --text:#e5e7eb;       /* gray-200  */
+  --muted:#94a3b8;      /* slate-400 */
+  --card:#0b1220ee;
+  --glass: rgba(255,255,255,.06);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color:var(--text);
+  background: radial-gradient(1200px 700px at 10% -10%, #1e293b 0%, transparent 60%),
+              radial-gradient(900px 700px at 110% 20%, #1f2937 0%, transparent 60%),
+              linear-gradient(180deg, var(--bg1), var(--bg2));
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Layout */
+.app{min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:28px}
+.max{width:min(1120px, 96vw)}
+.header{display:flex; align-items:center; justify-content:space-between; gap:16px}
+.title{font-size:42px; font-weight:800; letter-spacing:-.02em; margin:0}
+.subtitle{margin:.25rem 0 1rem; color:var(--muted)}
+
+/* Creator badge */
+.badge{
+  position:fixed; top:16px; right:16px; z-index:50;
+  background:#000; color:#fff; border-radius:999px;
+  padding:8px 12px; font-size:12px; text-decoration:none; box-shadow:0 8px 30px rgba(0,0,0,.35);
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* Tabs */
+.tabs{display:flex; gap:10px; margin:12px 0 18px}
+.tab{padding:10px 14px; border:1px solid var(--glass); background:var(--glass); color:var(--text); border-radius:12px; cursor:pointer; transition:transform .12s, background .2s, border .2s}
+.tab:hover{transform:translateY(-1px)}
+.tab.active{background:linear-gradient(135deg, var(--acc), var(--acc2)); border-color:transparent}
+
+/* Metrics */
+.metrics{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+@media (max-width:840px){ .metrics{grid-template-columns:1fr 1fr}}
+@media (max-width:540px){ .metrics{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg, var(--card), #0b1220d8);
+  border:1px solid var(--glass);
+  border-radius:16px; padding:16px; text-align:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.25); animation:floatIn .35s ease both;
 }
-button:hover {
-  border-color: #646cff;
+.card h3{margin:0 0 6px; font-weight:700; text-transform:capitalize; color:#cbd5e1}
+.card .value{font-size:28px; font-weight:800}
+
+/* Buttons */
+.row{display:flex; flex-wrap:wrap; gap:10px}
+.btn{
+  border:1px solid var(--glass); background:var(--glass); color:var(--text);
+  padding:10px 14px; border-radius:12px; cursor:pointer;
+  transition:transform .08s ease, background .2s ease, box-shadow .2s ease;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.btn:hover{transform:translateY(-1px)}
+.btn.green{background:linear-gradient(135deg,#16a34a,#22c55e)}
+.btn.amber{background:linear-gradient(135deg,#d97706,#f59e0b)}
+.btn.violet{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+.btn.outline{background:transparent}
+
+.notice{
+  margin-top:8px; background:linear-gradient(135deg, #14532d, #166534);
+  padding:10px 14px; border-radius:12px; display:inline-flex; align-items:center; gap:8px
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Log */
+.log{height:160px; overflow:auto; background:rgba(255,255,255,.03); border:1px solid var(--glass);
+     border-radius:14px; padding:12px; font-size:13px}
+.log p{margin:.25rem 0}
+
+/* Start / About Modals */
+.modal{
+  position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:22px;
+  background:rgba(0,0,0,.45); backdrop-filter: blur(6px); animation:fadin .2s ease both;
 }
+.sheet{
+  width:min(560px, 96vw); background:#0b1220; border:1px solid var(--glass); color:var(--text);
+  border-radius:18px; padding:22px; box-shadow:0 16px 48px rgba(0,0,0,.4);
+  animation:pop .22s ease both;
+}
+
+/* Progress bar */
+.progress{height:8px; background:#0b1220; border:1px solid var(--glass); border-radius:999px; overflow:hidden}
+.progress > span{display:block; height:100%; background:linear-gradient(90deg, var(--acc), var(--acc2)); transition:width .35s ease}
+
+/* Sparkles (simple celebratory animation) */
+.spark{position:fixed; inset:0; pointer-events:none; z-index:40}
+.spark i{
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #fff0 70%), var(--acc);
+  animation: sparkle 900ms ease-out forwards;
+}
+@keyframes sparkle{
+  from{transform:translate(var(--x), var(--y)) scale(.9); opacity:1}
+  to{transform:translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(.4); opacity:0}
+}
+
+/* Keyframes */
+@keyframes fadin{from{opacity:0} to{opacity:1}}
+@keyframes pop{from{transform:scale(.96); opacity:.0} to{transform:scale(1); opacity:1}}
+@keyframes floatIn{from{transform:translateY(8px); opacity:.0} to{transform:translateY(0); opacity:1}}
